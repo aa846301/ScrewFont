@@ -577,10 +577,9 @@ def build_font() -> None:
         {
             "familyName": "ScrewLabelIcons",
             "styleName": "Regular",
-            "uniqueFontIdentifier": "ScrewLabelIcons Regular 0.1.0",
+            "uniqueFontIdentifier": "ScrewLabelIcons Regular",
             "fullName": "ScrewLabelIcons Regular",
             "psName": "ScrewLabelIcons-Regular",
-            "version": "Version 0.1.0",
             "manufacturer": "screwfont",
             "designer": "screwfont geometry generator",
             "description": "3D-printing-friendly screw label icon font.",

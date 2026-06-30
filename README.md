@@ -23,6 +23,17 @@ uv run python scripts/build_font.py
 
 `scripts/build_font.py` 可以重複執行，會重新建立輸出檔案。
 
+## 發布 Release
+
+`output/` 不進 git。發布新版時建立並推送 tag，GitHub Actions 會自動重建字型，並在 GitHub Release 上傳壓縮包：
+
+```powershell
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Release asset 會命名為 `ScrewLabelIcons-<tag>.zip`，zip 裡只包含固定檔名的 `ScrewLabelIcons.ttf`。字型本身不寫入 tag 或版號，family name、full name、PostScript name 維持固定，方便在系統中覆蓋安裝。
+
 ## 字型規格
 
 - Font name: `ScrewLabelIcons`

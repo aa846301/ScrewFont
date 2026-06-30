@@ -1,0 +1,59 @@
+name: Release font
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "fonttools>=4.53.0"
+
+      - name: Build font
+        run: python scripts/build_font.py
+
+      - name: Package font
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import re
+          import zipfile
+
+          tag = os.environ["GITHUB_REF_NAME"]
+          safe_tag = re.sub(r"[^A-Za-z0-9._-]+", "-", tag).strip("-")
+          dist = pathlib.Path("dist")
+          dist.mkdir(exist_ok=True)
+
+          zip_path = dist / f"ScrewLabelIcons-{safe_tag}.zip"
+          with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+              archive.write("output/ScrewLabelIcons.ttf", "ScrewLabelIcons.ttf")
+              archive.write("output/preview.html", "preview.html")
+
+          print(zip_path)
+          PY
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ScrewLabelIcons ${{ github.ref_name }}
+          files: dist/*.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: true
