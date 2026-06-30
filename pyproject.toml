@@ -1,0 +1,12 @@
+[project]
+name = "screw-label-icons"
+version = "0.1.0"
+description = "A 3D-printing-friendly icon font for screw drawer labels."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fonttools>=4.53.0",
+]
+
+[tool.uv]
+package = false
