@@ -1,5 +1,5 @@
 [project]
-name = "screw-label-icons"
+name = "screwfont"
 version = "0.1.0"
 description = "A 3D-printing-friendly icon font for screw drawer labels."
 readme = "README.md"

@@ -10,7 +10,7 @@ from fontTools.pens.ttGlyphPen import TTGlyphPen
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "output"
-FONT_PATH = OUTPUT / "ScrewLabelIcons.ttf"
+FONT_PATH = OUTPUT / "ScrewFont.ttf"
 PREVIEW_PATH = OUTPUT / "preview.html"
 
 UNITS_PER_EM = 1000
@@ -575,13 +575,13 @@ def build_font() -> None:
     fb.setupHorizontalHeader(ascent=ASCENT, descent=DESCENT)
     fb.setupNameTable(
         {
-            "familyName": "ScrewLabelIcons",
+            "familyName": "ScrewFont",
             "styleName": "Regular",
-            "uniqueFontIdentifier": "ScrewLabelIcons Regular",
-            "fullName": "ScrewLabelIcons Regular",
-            "psName": "ScrewLabelIcons-Regular",
-            "manufacturer": "screwfont",
-            "designer": "screwfont geometry generator",
+            "uniqueFontIdentifier": "ScrewFont Regular",
+            "fullName": "ScrewFont Regular",
+            "psName": "ScrewFont-Regular",
+            "manufacturer": "ScrewFont",
+            "designer": "ScrewFont geometry generator",
             "description": "3D-printing-friendly screw label icon font.",
         }
     )
@@ -640,11 +640,11 @@ def build_preview() -> None:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ScrewLabelIcons Preview</title>
+  <title>ScrewFont Preview</title>
   <style>
     @font-face {{
-      font-family: "ScrewLabelIcons";
-      src: url("./ScrewLabelIcons.ttf") format("truetype");
+      font-family: "ScrewFont";
+      src: url("./ScrewFont.ttf") format("truetype");
     }}
     :root {{
       color-scheme: light;
@@ -690,7 +690,7 @@ def build_preview() -> None:
     .glyph {{
       width: 92px;
       height: 72px;
-      font-family: "ScrewLabelIcons";
+      font-family: "ScrewFont";
       font-size: 56px;
       line-height: 1;
       text-align: center;
@@ -718,7 +718,7 @@ def build_preview() -> None:
       white-space: nowrap;
     }}
     .label span {{
-      font-family: "ScrewLabelIcons";
+      font-family: "ScrewFont";
       font-size: 62px;
       line-height: 1;
     }}
@@ -742,7 +742,7 @@ def build_preview() -> None:
 <body>
   <main>
     <section>
-      <h1>ScrewLabelIcons</h1>
+      <h1>ScrewFont</h1>
     </section>
     <section>
       <h2>Glyph 對照表</h2>
