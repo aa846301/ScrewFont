@@ -1,17 +1,29 @@
 from __future__ import annotations
 
 import math
+from html import escape
 from pathlib import Path
 from typing import Callable
 
-from fontTools.fontBuilder import FontBuilder
+from fontTools.ttLib import TTFont
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "output"
+THIRD_PARTY = ROOT / "third_party" / "noto"
 FONT_PATH = OUTPUT / "ScrewFont.ttf"
 PREVIEW_PATH = OUTPUT / "preview.html"
+BASE_FONT_PATH = THIRD_PARTY / "NotoSans-Black.ttf"
+BASE_LICENSE_PATH = THIRD_PARTY / "LICENSE.txt"
+OUTPUT_LICENSE_PATH = OUTPUT / "NotoSans-LICENSE.txt"
+PUA_BASE = 0xE001
+FONT_FAMILY_NAME = "ScrewFont"
+FONT_STYLE_NAME = "Regular"
+FONT_FULL_NAME = "ScrewFont Regular"
+FONT_UNIQUE_ID = "ScrewFont-Regular"
+FONT_POSTSCRIPT_NAME = "ScrewFont-Regular"
+FONT_VERSION = "Version 1.000"
 
 UNITS_PER_EM = 1000
 ASCENT = 1000
@@ -41,6 +53,22 @@ LONG_SHANK_LENGTH = 1470
 
 
 GLYPHS: dict[str, tuple[str, int, DrawFunc, str]] = {}
+# Noto Sans Black uppercase and digits sit around 0..714, so the visual
+# center is lower than the geometric 1000-em center used to draw the icons.
+TEXT_CENTER_Y = 357
+
+
+def icon_codepoint(index: int) -> int:
+    return PUA_BASE + index
+
+
+def icon_char(mnemonic: str) -> str:
+    keys = list(GLYPHS.keys())
+    return chr(icon_codepoint(keys.index(mnemonic)))
+
+
+def icon_text(mnemonics: str) -> str:
+    return "".join(icon_char(ch) if ch in GLYPHS else ch for ch in mnemonics)
 
 
 def area(points: list[Point]) -> float:
@@ -172,7 +200,8 @@ def normalized_glyph(draw: DrawFunc) -> tuple[object, int, int]:
         return glyph, SIDE_BEARING * 2, SIDE_BEARING
 
     width = glyph.xMax - glyph.xMin
-    glyph.coordinates.translate((SIDE_BEARING - glyph.xMin, 0))
+    center_y = (glyph.yMin + glyph.yMax) / 2
+    glyph.coordinates.translate((SIDE_BEARING - glyph.xMin, round(TEXT_CENTER_Y - center_y)))
     glyph.recalcBounds({})
     return glyph, width + SIDE_BEARING * 2, SIDE_BEARING
 
@@ -550,60 +579,84 @@ def glyph_magnet(pen: TTGlyphPen) -> None:
     )
 
 
+def ensure_base_font() -> None:
+    missing = [path for path in (BASE_FONT_PATH, BASE_LICENSE_PATH) if not path.exists()]
+    if missing:
+        paths = ", ".join(str(path) for path in missing)
+        raise FileNotFoundError(f"Missing vendored Noto Sans files: {paths}")
+
+
+def set_name(font: TTFont, name_id: int, value: str) -> None:
+    name_table = font["name"]
+    found = False
+    for record in name_table.names:
+        if record.nameID == name_id:
+            record.string = value.encode(record.getEncoding())
+            found = True
+    if not found:
+        name_table.setName(value, name_id, 3, 1, 0x409)
+
+
+def rename_font(font: TTFont) -> None:
+    set_name(font, 1, FONT_FAMILY_NAME)
+    set_name(font, 2, FONT_STYLE_NAME)
+    set_name(font, 3, FONT_UNIQUE_ID)
+    set_name(font, 4, FONT_FULL_NAME)
+    set_name(font, 5, FONT_VERSION)
+    set_name(font, 6, FONT_POSTSCRIPT_NAME)
+    set_name(font, 16, FONT_FAMILY_NAME)
+    set_name(font, 17, FONT_STYLE_NAME)
+    set_name(font, 18, FONT_FULL_NAME)
+    set_name(font, 8, "ScrewFont")
+    set_name(font, 9, "ScrewFont geometry generator")
+    set_name(font, 10, "3D-printing-friendly screw label font with Noto Sans Black text glyphs.")
+    font["head"].fontRevision = 1.0
+    font["head"].macStyle &= ~0b11
+    font["OS/2"].usWeightClass = 400
+    font["OS/2"].fsSelection &= ~((1 << 0) | (1 << 5))
+    font["OS/2"].fsSelection |= 1 << 6
+
+
+def add_icon_cmap(font: TTFont, codepoint: int, glyph_name: str) -> None:
+    for table in font["cmap"].tables:
+        if table.isUnicode():
+            table.cmap[codepoint] = glyph_name
+
+
 def build_font() -> None:
-    glyph_order = [".notdef"] + [data[0] for data in GLYPHS.values()]
-    cmap = {ord(char): data[0] for char, data in GLYPHS.items()}
-    glyphs = {}
-    metrics = {}
+    ensure_base_font()
+    font = TTFont(BASE_FONT_PATH)
+    glyph_order = font.getGlyphOrder()
+    glyf = font["glyf"]
+    hmtx = font["hmtx"]
 
-    pen = TTGlyphPen(None)
-    rect(pen, 80, 0, 600, 700)
-    rect(pen, 200, 120, 360, 460, hole=True)
-    glyphs[".notdef"] = pen.glyph()
-    metrics[".notdef"] = (800, 80)
-
-    for _char, (glyph_name, _advance, draw, _description) in GLYPHS.items():
+    for index, (_mnemonic, (glyph_name, _advance, draw, _description)) in enumerate(GLYPHS.items()):
         glyph, advance, lsb = normalized_glyph(draw)
-        glyphs[glyph_name] = glyph
-        metrics[glyph_name] = (advance, lsb)
+        if glyph_name not in glyph_order:
+            glyph_order.append(glyph_name)
+        glyf[glyph_name] = glyph
+        hmtx[glyph_name] = (advance, lsb)
+        add_icon_cmap(font, icon_codepoint(index), glyph_name)
 
-    fb = FontBuilder(UNITS_PER_EM, isTTF=True)
-    fb.setupGlyphOrder(glyph_order)
-    fb.setupCharacterMap(cmap)
-    fb.setupGlyf(glyphs)
-    fb.setupHorizontalMetrics(metrics)
-    fb.setupHorizontalHeader(ascent=ASCENT, descent=DESCENT)
-    fb.setupNameTable(
-        {
-            "familyName": "ScrewFont",
-            "styleName": "Regular",
-            "uniqueFontIdentifier": "ScrewFont Regular",
-            "fullName": "ScrewFont Regular",
-            "psName": "ScrewFont-Regular",
-            "manufacturer": "ScrewFont",
-            "designer": "ScrewFont geometry generator",
-            "description": "3D-printing-friendly screw label icon font.",
-        }
-    )
-    fb.setupOS2(
-        sTypoAscender=ASCENT,
-        sTypoDescender=DESCENT,
-        sTypoLineGap=0,
-        usWinAscent=ASCENT,
-        usWinDescent=abs(DESCENT),
-    )
-    fb.setupPost()
-    fb.save(FONT_PATH)
+    font.setGlyphOrder(glyph_order)
+    font["maxp"].numGlyphs = len(glyph_order)
+    rename_font(font)
+    font.save(FONT_PATH)
+    OUTPUT_LICENSE_PATH.write_text(BASE_LICENSE_PATH.read_text(encoding="utf-8"), encoding="utf-8")
 
 
 def glyph_rows() -> str:
     rows = []
-    for char, (_name, _advance, draw, description) in GLYPHS.items():
+    for index, (mnemonic, (_name, _advance, draw, description)) in enumerate(GLYPHS.items()):
+        char = chr(icon_codepoint(index))
         code = f"U+{ord(char):04X}"
         advance = measured_advance(draw)
+        copy_value = escape(char, quote=True)
         rows.append(
             f"<tr><td class=\"glyph\">{char}</td><td><code>{char}</code></td>"
-            f"<td><code>{code}</code></td><td>{advance}</td><td>{description}</td></tr>"
+            f"<td><code>{mnemonic}</code></td>"
+            f"<td><code>{code}</code></td><td>{advance}</td><td>{description}</td>"
+            f"<td><button class=\"copy-button\" type=\"button\" data-copy=\"{copy_value}\">複製</button></td></tr>"
         )
     return "\n".join(rows)
 
@@ -626,10 +679,12 @@ def sample_rows() -> str:
     ]
     rows = []
     for icons, text, description in samples:
-        icon_text = "".join(f"<span>{ch}</span>" if ch in GLYPHS else ch for ch in icons)
+        rendered_icons = "".join(f"<span>{icon_char(ch)}</span>" if ch in GLYPHS else ch for ch in icons)
+        copy_text = f"{icon_text(icons)} {text}"
         rows.append(
-            f"<div class=\"sample\"><div class=\"label\">{icon_text}"
-            f"<strong>{text}</strong></div><div>{description}</div></div>"
+            f"<div class=\"sample\"><div class=\"label\">{rendered_icons}"
+            f"<strong>{text}</strong></div><div>{description}</div>"
+            f"<button class=\"copy-button\" type=\"button\" data-copy=\"{escape(copy_text, quote=True)}\">複製</button></div>"
         )
     return "\n".join(rows)
 
@@ -687,6 +742,31 @@ def build_preview() -> None:
       font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
       font-size: 14px;
     }}
+    .copy-button {{
+      min-width: 58px;
+      height: 34px;
+      padding: 0 12px;
+      border: 1px solid #b8c0c7;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #202124;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+    }}
+    .copy-button:hover {{
+      background: #f1f4f6;
+    }}
+    .copy-button:focus-visible {{
+      outline: 2px solid #1967d2;
+      outline-offset: 2px;
+    }}
+    .copy-button[data-copied="true"] {{
+      border-color: #137333;
+      color: #137333;
+      background: #eef7ee;
+    }}
     .glyph {{
       width: 92px;
       height: 72px;
@@ -701,7 +781,7 @@ def build_preview() -> None:
     }}
     .sample {{
       display: grid;
-      grid-template-columns: minmax(260px, 1fr) 1.4fr;
+      grid-template-columns: minmax(260px, 1fr) 1.4fr auto;
       align-items: center;
       gap: 18px;
       padding: 14px 16px;
@@ -714,13 +794,14 @@ def build_preview() -> None:
       display: flex;
       align-items: center;
       gap: 10px;
-      font-size: 34px;
+      font-family: "ScrewFont";
+      font-size: 44px;
+      line-height: 1;
       white-space: nowrap;
     }}
-    .label span {{
-      font-family: "ScrewFont";
-      font-size: 62px;
-      line-height: 1;
+    .label span,
+    .label strong {{
+      font: inherit;
     }}
     @media (max-width: 760px) {{
       body {{
@@ -730,11 +811,8 @@ def build_preview() -> None:
         grid-template-columns: 1fr;
       }}
       .label {{
-        font-size: 28px;
+        font-size: 36px;
         overflow-x: auto;
-      }}
-      .label span {{
-        font-size: 52px;
       }}
     }}
   </style>
@@ -748,7 +826,7 @@ def build_preview() -> None:
       <h2>Glyph 對照表</h2>
       <table>
         <thead>
-          <tr><th>圖示</th><th>字元</th><th>Unicode</th><th>Advance Width</th><th>說明</th></tr>
+          <tr><th>圖示</th><th>複製符號</th><th>舊代號</th><th>Unicode</th><th>Advance Width</th><th>說明</th><th>操作</th></tr>
         </thead>
         <tbody>
           {glyph_rows()}
@@ -762,6 +840,47 @@ def build_preview() -> None:
       </div>
     </section>
   </main>
+  <script>
+    const fallbackCopy = (text) => {{
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }};
+
+    const copyText = async (text) => {{
+      if (navigator.clipboard && window.isSecureContext) {{
+        await navigator.clipboard.writeText(text);
+        return;
+      }}
+      fallbackCopy(text);
+    }};
+
+    document.querySelectorAll("[data-copy]").forEach((button) => {{
+      button.addEventListener("click", async () => {{
+        const original = button.textContent;
+        try {{
+          await copyText(button.dataset.copy);
+          button.textContent = "已複製";
+          button.dataset.copied = "true";
+          window.setTimeout(() => {{
+            button.textContent = original;
+            delete button.dataset.copied;
+          }}, 1200);
+        }} catch (_error) {{
+          button.textContent = "失敗";
+          window.setTimeout(() => {{
+            button.textContent = original;
+          }}, 1200);
+        }}
+      }});
+    }});
+  </script>
 </body>
 </html>
 """

@@ -1,12 +1,13 @@
 # ScrewFont
 
-ScrewFont 是一套給 3D 列印螺絲抽屜標籤使用的 icon font。每個字元都是單色、封閉輪廓的幾何圖示，可以搭配 `M3×6`、`M4×16` 這類文字做凸字或凹字標籤。
+ScrewFont 是一套給 3D 列印螺絲抽屜標籤使用的字型。一般文字以 Noto Sans Black 為主體，螺絲與零件圖示放在 Unicode Private Use Area，可以搭配 `M3×6`、`M4×16` 這類文字做凸字或凹字標籤。
 
 ## 專案需求
 
 - Python 3.11 或以上
 - uv
 - fontTools
+- `third_party/noto/NotoSans-Black.ttf` 與 `third_party/noto/LICENSE.txt` 保留在專案內，作為一般文字的基礎字型與授權文件
 
 ## 建立環境與產生字型
 
@@ -20,8 +21,11 @@ uv run python scripts/build_font.py
 
 - `output/ScrewFont.ttf`
 - `output/preview.html`
+- `output/NotoSans-LICENSE.txt`
 
 `scripts/build_font.py` 可以重複執行，會重新建立輸出檔案。
+
+Noto Sans Black 依 SIL Open Font License 發布。本專案將基礎字型檔與授權文字保存在 `third_party/noto/`，避免 CI 或本機建置依賴上游網址；散布產物時會把授權文字複製成 `output/NotoSans-LICENSE.txt` 並放入 release zip。
 
 ## 發布 Release
 
@@ -32,12 +36,13 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-Release asset 會命名為 `ScrewFont-<tag>.zip`，zip 裡包含固定檔名的 `ScrewFont.ttf` 與 `preview.html`。字型本身不寫入 tag 或版號，family name、full name、PostScript name 維持固定，方便在系統中覆蓋安裝。
+Release asset 會命名為 `ScrewFont-<tag>.zip`，zip 裡包含固定檔名的 `ScrewFont.ttf`、`preview.html` 與 `NotoSans-LICENSE.txt`。字型本身不寫入 tag 或版號，family name、full name、PostScript name 維持固定，方便在系統中覆蓋安裝。
 
 ## 字型規格
 
 - Font name: `ScrewFont`
 - `unitsPerEm = 1000`
+- 一般文字來自 Noto Sans Black；螺絲圖示從 `U+E001` 起放在 Unicode Private Use Area
 - Glyph 會依實際圖形寬度自動修剪 advance width，左右各保留 `20` units 邊距
 - 橫式長版螺絲保留長版比例，但也會自動修剪左右空白
 - 輪廓為單色封閉向量
@@ -59,9 +64,11 @@ Release asset 會命名為 `ScrewFont-<tag>.zip`，zip 裡包含固定檔名的 
 
 ## 字元對照
 
+下表的 `H`、`S`、`B` 等是專案內部舊代號，方便維護與查表；實際使用時請開啟 `preview.html`，複製表格中的 Private Use Area 圖示符號。
+
 ### 工具符號
 
-| 字元 | 說明 |
+| 舊代號 | 說明 |
 | --- | --- |
 | `H` | 內六角工具孔 |
 | `P` | 十字起子孔 |
@@ -71,7 +78,7 @@ Release asset 會命名為 `ScrewFont-<tag>.zip`，zip 裡包含固定檔名的 
 
 ### 直式螺絲本體
 
-| 字元 | 說明 |
+| 舊代號 | 說明 |
 | --- | --- |
 | `S` | 直式圓頭機械牙螺絲 |
 | `B` | 直式杯頭機械牙螺絲 |
@@ -84,7 +91,7 @@ Release asset 會命名為 `ScrewFont-<tag>.zip`，zip 裡包含固定檔名的 
 
 ### 橫式短版螺絲本體
 
-| 字元 | 說明 |
+| 舊代號 | 說明 |
 | --- | --- |
 | `A` | 橫式短版圓頭機械牙螺絲 |
 | `C` | 橫式短版杯頭機械牙螺絲 |
@@ -97,7 +104,7 @@ Release asset 會命名為 `ScrewFont-<tag>.zip`，zip 裡包含固定檔名的 
 
 ### 橫式長版螺絲本體
 
-| 字元 | 說明 |
+| 舊代號 | 說明 |
 | --- | --- |
 | `Q` | 橫式長版圓頭機械牙螺絲 |
 | `G` | 橫式長版杯頭機械牙螺絲 |
@@ -110,14 +117,14 @@ Release asset 會命名為 `ScrewFont-<tag>.zip`，zip 裡包含固定檔名的 
 
 ### 止付螺絲
 
-| 字元 | 說明 |
+| 舊代號 | 說明 |
 | --- | --- |
 | `Z` | 直式止付螺絲 |
 | `z` | 橫式止付螺絲 |
 
 ### 非螺絲零件
 
-| 字元 | 說明 |
+| 舊代號 | 說明 |
 | --- | --- |
 | `N` | 六角螺母 |
 | `R` | 墊片 |
@@ -133,10 +140,8 @@ Release asset 會命名為 `ScrewFont-<tag>.zip`，zip 裡包含固定檔名的 
 
 1. 安裝 `output/ScrewFont.ttf`。
 2. 在建模軟體的文字工具中選擇字型 `ScrewFont`。
-3. 輸入圖示字元，例如 `H S M4×16`。
-4. 若軟體不支援單段文字混用字型，建議把 icon 與尺寸文字分成兩個文字物件：
-   - icon 物件使用 `ScrewFont`，輸入 `H S`
-   - 尺寸文字使用一般無襯線字型，輸入 `M4×16`
+3. 開啟 `output/preview.html`，複製需要的螺絲圖示符號。
+4. 在文字工具中貼上圖示符號並輸入尺寸文字，例如「內六角圖示 + 圓頭螺絲圖示 + `M4×16`」。
 5. 將文字轉為曲線、輪廓或實體後，再做凸字或凹字布林運算。
 
 長版橫式螺絲 `Q`、`G`、`J`、`q`、`g`、`j` 保留長版比例，適合長標籤；所有 glyph 的 advance width 會依圖形實際寬度自動修剪左右空白。

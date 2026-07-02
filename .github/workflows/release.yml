@@ -46,6 +46,7 @@ jobs:
           with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
               archive.write("output/ScrewFont.ttf", "ScrewFont.ttf")
               archive.write("output/preview.html", "preview.html")
+              archive.write("output/NotoSans-LICENSE.txt", "NotoSans-LICENSE.txt")
 
           print(zip_path)
           PY
