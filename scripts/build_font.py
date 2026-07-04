@@ -206,7 +206,7 @@ def normalized_glyph(draw: DrawFunc) -> tuple[object, int, int]:
     return glyph, width + SIDE_BEARING * 2, SIDE_BEARING
 
 
-def measured_advance(draw: DrawFunc) -> int:
+def measured_advance(mnemonic: str, draw: DrawFunc) -> int:
     _glyph, advance, _lsb = normalized_glyph(draw)
     return advance
 
@@ -579,6 +579,12 @@ def glyph_magnet(pen: TTGlyphPen) -> None:
     )
 
 
+@register("O", "part_square_nut", 1000, "方形螺母")
+def glyph_square_nut(pen: TTGlyphPen) -> None:
+    rect(pen, 160, 160, 680, 680)
+    circle(pen, 500, 500, 170, hole=True)
+
+
 def ensure_base_font() -> None:
     missing = [path for path in (BASE_FONT_PATH, BASE_LICENSE_PATH) if not path.exists()]
     if missing:
@@ -630,7 +636,7 @@ def build_font() -> None:
     glyf = font["glyf"]
     hmtx = font["hmtx"]
 
-    for index, (_mnemonic, (glyph_name, _advance, draw, _description)) in enumerate(GLYPHS.items()):
+    for index, (mnemonic, (glyph_name, _advance, draw, _description)) in enumerate(GLYPHS.items()):
         glyph, advance, lsb = normalized_glyph(draw)
         if glyph_name not in glyph_order:
             glyph_order.append(glyph_name)
@@ -650,7 +656,7 @@ def glyph_rows() -> str:
     for index, (mnemonic, (_name, _advance, draw, description)) in enumerate(GLYPHS.items()):
         char = chr(icon_codepoint(index))
         code = f"U+{ord(char):04X}"
-        advance = measured_advance(draw)
+        advance = measured_advance(mnemonic, draw)
         copy_value = escape(char, quote=True)
         rows.append(
             f"<tr><td class=\"glyph\">{char}</td><td><code>{char}</code></td>"
@@ -674,6 +680,7 @@ def sample_rows() -> str:
         ("H Q", "M6×45", "內六角 + 橫式長版圓頭機械牙螺絲 M6×45"),
         ("H z", "M4×8", "內六角 + 橫式止付螺絲 M4×8"),
         ("N", "M4", "六角螺母 M4"),
+        ("O", "M4", "方形螺母 M4"),
         ("R", "M3", "墊片 M3"),
         ("D", "D6×3", "圓形磁鐵 D6×3"),
     ]
