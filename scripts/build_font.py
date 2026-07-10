@@ -49,7 +49,7 @@ LOW_HEAD_CHAMFER = 16
 SET_SCREW_MAX_WIDTH = 360
 SET_SCREW_TOOTH = 28
 SET_SCREW_CORE_WIDTH = SET_SCREW_MAX_WIDTH - SET_SCREW_TOOTH * 2
-LONG_SHANK_LENGTH = 1470
+LONG_SHANK_LENGTH = 780
 
 
 GLYPHS: dict[str, tuple[str, int, DrawFunc, str]] = {}
@@ -585,6 +585,54 @@ def glyph_square_nut(pen: TTGlyphPen) -> None:
     circle(pen, 500, 500, 170, hole=True)
 
 
+@register("U", "part_heat_insert", 1000, "熱熔螺母")
+def glyph_heat_insert(pen: TTGlyphPen) -> None:
+    polygon(
+        pen,
+        [
+            (245, 140),
+            (755, 140),
+            (810, 195),
+            (810, 430),
+            (765, 470),
+            (810, 510),
+            (810, 805),
+            (755, 860),
+            (245, 860),
+            (190, 805),
+            (190, 510),
+            (235, 470),
+            (190, 430),
+            (190, 195),
+        ],
+    )
+    rect(pen, 250, 205, 110, 220, hole=True)
+    rect(pen, 425, 205, 150, 220, hole=True)
+    rect(pen, 640, 205, 110, 220, hole=True)
+    rect(pen, 250, 575, 110, 220, hole=True)
+    rect(pen, 425, 575, 150, 220, hole=True)
+    rect(pen, 640, 575, 110, 220, hole=True)
+    rect(pen, 245, 445, 510, 110, hole=True)
+
+
+@register("V", "part_aluminum_extrusion_t_nut", 1000, "鋁擠船型螺母")
+def glyph_aluminum_extrusion_t_nut(pen: TTGlyphPen) -> None:
+    polygon(
+        pen,
+        [
+            (160, 360),
+            (230, 285),
+            (770, 285),
+            (840, 360),
+            (840, 640),
+            (770, 715),
+            (230, 715),
+            (160, 640),
+        ],
+    )
+    circle(pen, 500, 500, 145, hole=True)
+
+
 def ensure_base_font() -> None:
     missing = [path for path in (BASE_FONT_PATH, BASE_LICENSE_PATH) if not path.exists()]
     if missing:
@@ -681,6 +729,8 @@ def sample_rows() -> str:
         ("H z", "M4×8", "內六角 + 橫式止付螺絲 M4×8"),
         ("N", "M4", "六角螺母 M4"),
         ("O", "M4", "方形螺母 M4"),
+        ("U", "M3", "熱熔螺母 M3"),
+        ("V", "M5", "鋁擠船型螺母 M5"),
         ("R", "M3", "墊片 M3"),
         ("D", "D6×3", "圓形磁鐵 D6×3"),
     ]
